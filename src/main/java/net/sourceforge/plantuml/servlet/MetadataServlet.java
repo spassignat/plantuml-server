@@ -117,7 +117,6 @@ public class MetadataServlet extends HttpServlet {
         if (metadata == null) {
             return;  // error is already set/handled inside `getMetadata`
         }
-        response.addHeader("Access-Control-Allow-Origin", "*");
         if (isJsonResponse) {
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(metadata.toJson().toString());

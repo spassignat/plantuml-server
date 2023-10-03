@@ -108,7 +108,6 @@ public class PlantUmlUIHelperServlet extends HttpServlet {
     }
 
     private HttpServletResponse setDefaultHeader(HttpServletResponse response, String contentType) {
-        response.addHeader("Access-Control-Allow-Origin", "*");
         response.setContentType(contentType);
         return response;
     }

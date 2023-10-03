@@ -158,7 +158,6 @@ public class DiagramResponse {
      * @throws IOException if an input or output exception occurred
      */
     public void sendDiagram(String uml, int idx) throws IOException {
-        response.addHeader("Access-Control-Allow-Origin", "*");
         response.setContentType(getContentType());
 
         if (idx < 0) {
@@ -293,7 +292,6 @@ public class DiagramResponse {
      * @throws IOException if an input or output exception occurred
      */
     public void sendMap(String uml, int idx) throws IOException {
-        response.addHeader("Access-Control-Allow-Origin", "*");
         response.setContentType(getContentType());
 
         if (idx < 0) {

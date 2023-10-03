@@ -23,92 +23,83 @@
  */
 package net.sourceforge.plantuml.servlet;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-
-import javax.imageio.IIOException;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.servlet.utility.UmlExtractor;
 import net.sourceforge.plantuml.servlet.utility.UrlDataExtractor;
+
+import javax.imageio.IIOException;
+import java.io.BufferedReader;
+import java.io.IOException;
 
 /**
  * Common service servlet to produce diagram from compressed UML source contained in the end part of the requested URI.
  */
 @SuppressWarnings("SERIAL")
 public abstract class UmlDiagramService extends HttpServlet {
+	@Override
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		final String url = request.getRequestURI();
+		final String encoded = UrlDataExtractor.getEncodedDiagram(url, "");
+		final int idx = UrlDataExtractor.getIndex(url, 0);
+		// build the UML source from the compressed request parameter
+		final String uml;
+		try {
+			uml = UmlExtractor.getUmlSource(encoded);
+		} catch (Exception e) {
+			e.printStackTrace();
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Bad Request");
+			return;
+		}
+		doDiagramResponse(request, response, uml, idx);
+	}
 
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        final String url = request.getRequestURI();
-        final String encoded = UrlDataExtractor.getEncodedDiagram(url, "");
-        final int idx = UrlDataExtractor.getIndex(url, 0);
+	@Override
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		final int idx = UrlDataExtractor.getIndex(request.getRequestURI(), 0);
+		// read textual diagram source from request body
+		final StringBuilder uml = new StringBuilder();
+		try (BufferedReader in = request.getReader()) {
+			String line;
+			while ((line = in.readLine()) != null) {
+				uml.append(line).append('\n');
+			}
+		}
+		doDiagramResponse(request, response, uml.toString(), idx);
+	}
 
-        // build the UML source from the compressed request parameter
-        final String uml;
-        try {
-            uml = UmlExtractor.getUmlSource(encoded);
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Bad Request");
-            return;
-        }
+	/**
+	 * Gives the wished output format of the diagram. This value is used by the DiagramResponse class.
+	 *
+	 * @return the format
+	 */
+	abstract public FileFormat getOutputFormat();
 
-        doDiagramResponse(request, response, uml, idx);
-    }
+	@Override
+	protected void doOptions(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
+		super.doOptions(req, response);
+	}
 
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        final int idx = UrlDataExtractor.getIndex(request.getRequestURI(), 0);
-
-        // read textual diagram source from request body
-        final StringBuilder uml = new StringBuilder();
-        try (BufferedReader in = request.getReader()) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                uml.append(line).append('\n');
-            }
-        }
-
-        doDiagramResponse(request, response, uml.toString(), idx);
-    }
-
-    /**
-     * Send diagram response.
-     *
-     * @param request html request
-     * @param response html response
-     * @param uml textual UML diagram(s) source
-     * @param idx diagram index of {@code uml} to send
-     *
-     * @throws IOException if an input or output exception occurred
-     */
-    private void doDiagramResponse(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        String uml,
-        int idx
-    ) throws IOException {
-        // generate the response
-        DiagramResponse dr = new DiagramResponse(response, getOutputFormat(), request);
-        try {
-            dr.sendDiagram(uml, idx);
-        } catch (IIOException e) {
-            // Browser has closed the connection, so the HTTP OutputStream is closed
-            // Silently catch the exception to avoid annoying log
-        }
-    }
-
-    /**
-     * Gives the wished output format of the diagram. This value is used by the DiagramResponse class.
-     *
-     * @return the format
-     */
-    abstract public FileFormat getOutputFormat();
-
+	/**
+	 * Send diagram response.
+	 *
+	 * @param request  html request
+	 * @param response html response
+	 * @param uml      textual UML diagram(s) source
+	 * @param idx      diagram index of {@code uml} to send
+	 * @throws IOException if an input or output exception occurred
+	 */
+	private void doDiagramResponse(HttpServletRequest request, HttpServletResponse response, String uml, int idx) throws IOException {
+		// generate the response
+		DiagramResponse dr = new DiagramResponse(response, getOutputFormat(), request);
+		try {
+			dr.sendDiagram(uml, idx);
+		} catch (IIOException e) {
+			// Browser has closed the connection, so the HTTP OutputStream is closed
+			// Silently catch the exception to avoid annoying log
+		}
+	}
 }
